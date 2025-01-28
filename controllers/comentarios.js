@@ -1,7 +1,7 @@
 const db = require('../database/connection');
 
 module.exports = {
-    async listarTiposEndereco(request, response) {
+    async listarComentarios(request, response) {
         try {
             const sql = 'SELECT * FROM tipo_endereco;';
             const tiposEndereco = await db.query(sql);

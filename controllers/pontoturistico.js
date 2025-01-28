@@ -1,26 +1,34 @@
 const db = require('../database/connection');
 
 module.exports = {
-    async listarTiposPagamentoCompra(request, response) {
+    
+    async listarPontoTuristicos(request, response) {
         try {
-            const sql = 'SELECT * FROM tipo_pagamento_compra;';
-            const tiposPagamentoCompra = await db.query(sql);
-            const nItens = tiposPagamentoCompra[0].length;
-
-            return response.status(200).json({
-                sucesso: true,
-                mensagem: 'Lista de Tipos de Pagamento de Compra.',
-                dados: tiposPagamentoCompra[0],
-                nItens
-            });
+          
+          // Chama a função de conexão para obter a pool
+          const pool = await db.connect();  
+    
+          // Realiza a consulta SQL
+          const resultado = await pool.request().query('SELECT * FROM pontosturisticos');
+    
+          // Resultado da consulta
+          const pturisto = resultado.recordset;  
+          const nItens = pturisto.length;
+    
+          return response.status(200).json({
+            sucesso: true,
+            mensagem: "Lista de pontos turisticos.",
+            dados: pturisto,
+            nItens,
+          });
         } catch (error) {
-            return response.status(500).json({
-                sucesso: false,
-                mensagem: 'Erro na requisição.',
-                dados: error.message
-            });
+          return response.status(500).json({
+            sucesso: false,
+            mensagem: "Erro na requisição.",
+            dados: error.message,
+          });
         }
-    },
+      },
 
     async cadastrarTipoPagamentoCompra(request, response) {
         try {

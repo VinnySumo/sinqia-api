@@ -2,8 +2,7 @@ const sql = require('mssql');
 
 const bd_usuario = 'sa';
 const bd_senha = '123456';
-const bd_servidor = 'localhost\\VINNYRAFA';
-
+const bd_servidor = 'VINNYRAFA';
 const bd_porta = 1433;  // Porta do SQL Server deve ser número
 const bd_banco = 'banco@sinqia';
 
@@ -12,26 +11,24 @@ const config = {
     user: bd_usuario,
     password: bd_senha,
     server: bd_servidor,
-    port: bd_porta,  // Porta do SQL Server, agora definida como número
+    port: bd_porta,  
     database: bd_banco,
     options: {
-        encrypt: true,  // Use true se estiver usando criptografia (SSL)
-        trustServerCertificate: true,  // Use true para desabilitar a verificação de certificado
+        encrypt: true,  
+        trustServerCertificate: true, 
     }
 };
 
-let pool;
-
-try {
-    // Criar uma pool de conexões com o banco de dados
-    pool = sql.connect(config).then(pool => {
+// Função para conectar e retornar a pool de conexões
+const connect = async () => {
+    try {
+        const pool = await sql.connect(config);  // Aguardando a conexão ser estabelecida
         console.log('Conectado ao SQL Server');
-        return pool;
-    }).catch(error => {
+        return pool;  // Retorna o pool para ser usado em outras partes do código
+    } catch (error) {
         console.error('Erro ao conectar ao SQL Server:', error);
-    });
-} catch (error) {
-    console.log('Erro ao inicializar a conexão:', error);
-}
+        throw error;  // Lança o erro para ser tratado na chamada
+    }
+};
 
-module.exports = pool;
+module.exports = { connect };  // Exporta a função para ser usada em outras partes do código
