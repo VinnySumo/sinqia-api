@@ -15,7 +15,6 @@ router.patch("/usuarios/alterar_senha",UsuariosController.alterarSenha);
 router.post("/recuperar_senha", UsuariosController.recuperarSenha);
 router.get("/usuarios", UsuariosController.listarUsuarios); //listar usuarios geral
 router.post("/usuarioscadastro", UsuariosController.cadastrarUsuarios); //body
-
 router.patch("/ocultarUsuario/:usu_id", UsuariosController.ocultarUsuario);
 router.patch("/ativarUsuario/:usu_id", UsuariosController.AtivarUsuario);
 
