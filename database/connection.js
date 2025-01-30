@@ -1,9 +1,11 @@
+// Importando mssql
 const sql = require('mssql');
 
+// Dados de configuração
 const bd_usuario = 'sa';
 const bd_senha = '123456';
 const bd_servidor = 'VINNYRAFA';
-const bd_porta = 1433;  // Porta do SQL Server deve ser número
+const bd_porta = 1433;  
 const bd_banco = 'banco@sinqia';
 
 // Configuração da conexão com o SQL Server
@@ -31,4 +33,4 @@ const connect = async () => {
     }
 };
 
-module.exports = { connect };  // Exporta a função para ser usada em outras partes do código
+module.exports = { connect, sql };  // Exportando tanto a função connect quanto o sql

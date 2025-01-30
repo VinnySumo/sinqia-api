@@ -1,31 +1,26 @@
-const db = require("../database/connection");
+const db = require("../database/connection"); 
+const sql = require("mssql"); 
 
+const bcrypt = require("bcryptjs"); // Usando bcrypt para criptografar as senhas
+const jwt = require("jsonwebtoken"); // Autenticação para controle de acesso
 
-const bcrypt = require("bcryptjs");
-//deixar a senha com criptografia
-
-// Importação do serviço de e-mail
+// Importação do serviço de e-mail (caso queira utilizar futuramente)
 const sgMail = require("@sendgrid/mail");
-
-// Configurando a chave API do envio de e-mail
-// sgMail.setApiKey(
-//   ""
-// ); // Substitua com a sua chave API do SendGrid
+// sgMail.setApiKey("YOUR_API_KEY"); // Substitua com sua chave API do SendGrid
 
 module.exports = {
+  // Função para listar usuários
   async listarUsuarios(request, response) {
     try {
+      const pool = await db.connect(); // Conectando ao banco de dados
 
-      // Chama a função de conexão para obter a pool
-      const pool = await db.connect();  
-
-      // Realiza a consulta SQL
+      // Realizando a consulta SQL
       const resultado = await pool.request().query('SELECT * FROM usuarios');
 
-      // Resultado da consulta
-      const usuarios = resultado.recordset;  
-      const nItens = usuarios.length;
+      const usuarios = resultado.recordset; // Armazenando os usuários retornados
+      const nItens = usuarios.length; // Contando o número de itens
 
+      // Respondendo com sucesso
       return response.status(200).json({
         sucesso: true,
         mensagem: "Lista de usuários.",
@@ -33,6 +28,7 @@ module.exports = {
         nItens,
       });
     } catch (error) {
+      // Em caso de erro
       return response.status(500).json({
         sucesso: false,
         mensagem: "Erro na requisição.",
@@ -41,195 +37,122 @@ module.exports = {
     }
   },
 
-
+  // Função para cadastrar usuário
   async cadastrarUsuarios(request, response) {
     try {
-      const {
-        usu_nome,
-        usu_sexo,
-        usu_data_nascimento,
-        usu_email,
-        usu_senha, // Essa variável será usada para armazenar a senha gerada, se necessário
-        tus_cod,
-        usu_cpf,
-        end_logradouro,
-        end_cidade,
-        end_estado,
-        end_cep,
-        tel_primario,
-      } = request.body;
-
-      // Verifica se todos os campos obrigatórios foram fornecidos, exceto senha quando tus_cod é 2 (cliente)
-      if (
-        !usu_nome ||
-        !usu_email ||
-        !usu_data_nascimento ||
-        !tus_cod ||
-        !end_logradouro ||
-        !end_cidade ||
-        !end_estado ||
-        !end_cep
-      ) {
+      // Desestruturando os dados da requisição
+      const { usu_nome, usu_email, usu_senha } = request.body;
+  
+      // Verificando se os campos obrigatórios foram fornecidos
+      if (!usu_nome || !usu_email || !usu_senha) {
         return response.status(400).json({
           sucesso: false,
-          mensagem: "Todos os campos são obrigatórios.",
-          dados: null,
+          mensagem: "Nome, e-mail e senha são obrigatórios.",
         });
       }
-
-      // Verifica se já existe um usuário com o mesmo e-mail
-      const checkEmailSql =
-        "SELECT COUNT(*) AS count FROM usuarios WHERE usu_email = $1";
-      const [checkEmailResult] = await db.query(checkEmailSql, [usu_email]);
-
-      if (checkEmailResult[0].count > 0) {
+  
+      const pool = await db.connect(); // Conectando ao banco de dados
+  
+      // Verificando se o e-mail já existe
+      const checkEmailSql = "SELECT COUNT(*) AS count FROM usuarios WHERE usu_email = @usu_email";
+      const result = await pool.request()
+        .input("usu_email", db.sql.VarChar(100), usu_email)  // Usando db.sql.VarChar
+        .query(checkEmailSql);
+  
+      if (result.recordset[0].count > 0) {
         return response.status(409).json({
           sucesso: false,
           mensagem: "E-mail já cadastrado.",
-          dados: null,
         });
       }
-
-      // Cadastro do endereço
-      const enderecoSql = `INSERT INTO enderecos 
-                            (end_logradouro, end_cidade, end_estado, end_cep) 
-                            VALUES ($1, $2, $3, $4)`;
-      const enderecoValues = [end_logradouro, end_cidade, end_estado, end_cep];
-      const [enderecoResult] = await db.query(enderecoSql, enderecoValues);
-      const end_id = enderecoResult.insertId;
-
-      // Se tus_cod for 3 (funcionário), gera uma senha provisória
-      let senha = usu_senha; // Define a senha inicial como a senha fornecida
-      let usu_senha_provisoria = 0; // 0 para inativo por padrão
-
-      if (tus_cod === 3 && !usu_senha) {
-        // Gera uma senha provisória se tus_cod for 3 e a senha não foi fornecida
-        const [senhaResult] = await db.query("SELECT fn_GerarSenha() AS senha");
-        senha = senhaResult[0].senha;
-        usu_senha_provisoria = 1; // Marca como senha provisória
-      } else if (tus_cod === 2) {
-        // Se for um cliente (tus_cod = 2), a senha permanece nula
-        senha = null;
-      }
-
-      // Cadastro do telefone primário
-      const telefoneSql = `INSERT INTO telefones (tel_primario) VALUES ($1)`;
-      const [telefoneResult] = await db.query(telefoneSql, [tel_primario]);
-      const tel_id = telefoneResult.insertId;
-
-      // Cadastro do usuário com o ID do telefone e do endereço
-      const usuarioSql = `INSERT INTO usuarios 
-                            (usu_nome, usu_sexo, usu_data_nascimento, usu_email, usu_senha, 
-                             usu_data_cadastro, tus_cod, usu_ativo, usu_cpf, end_id, tel_id, usu_senha_provisoria) 
-                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`;
-      const usuarioValues = [
-        usu_nome,
-        usu_sexo,
-        new Date(usu_data_nascimento).toISOString().split("T")[0],
-        usu_email,
-        senha, // A senha gerada automaticamente será usada aqui, se aplicável
-        new Date().toISOString().split("T")[0],
-        tus_cod,
-        usu_cpf,
-        end_id,
-        tel_id,
-        usu_senha_provisoria, // O status de senha provisória será usado aqui
-      ];
-      const [usuarioResult] = await db.query(usuarioSql, usuarioValues);
-      const usu_id = usuarioResult.insertId;
-
-      // Atualiza o telefone com o ID do usuário
-      const atualizarTelefoneSql = `UPDATE telefones SET usu_id = $1 WHERE tel_id = $2`;
-      await db.query(atualizarTelefoneSql, [usu_id, tel_id]);
-
-      // Enviar o e-mail para o funcionário se for um funcionário (tus_cod = 3)
-      if (tus_cod === 3 && senha) {
-        const msg = {
-          to: usu_email, // Destinatário do e-mail
-          from: {
-            email: "satemailenvio@gmail.com", // E-mail de envio
-            name: "Sat-Sistema Administrativo", // Nome que aparecerá no campo de envio
-          },
-          subject: "Sua senha provisória",
-          text: `Olá ${usu_nome},\n\nSua senha provisória é: ${senha}\n\nPor favor, altere sua senha assim que possível.`,
-          html: `<p>Olá ${usu_nome},</p><p>Sua senha provisória é: <strong>${senha}</strong></p><p>Por favor, altere sua senha assim que possível.</p>`,
-        };
-
-        // Envia o e-mail usando o SendGrid
-        try {
-          await sgMail.send(msg);
-          console.log("E-mail enviado com sucesso!");
-        } catch (error) {
-          console.error("Erro ao enviar e-mail:", error);
-        }
-      }
-
-      // Retorna sucesso ao final do processo
-      return response.status(200).json({
+  
+      // Criptografando a senha antes de salvar
+      const hashedPassword = await bcrypt.hash(usu_senha, 10); // Usando bcrypt para gerar hash da senha
+  
+      // Inserindo o novo usuário no banco
+      const insertSql = `
+        INSERT INTO usuarios (usu_nome, usu_email, usu_senha, usu_data_cadastro, usu_senha_provisoria)
+        VALUES (@usu_nome, @usu_email, @usu_senha, GETDATE(), 0);
+      `;
+      const insertResult = await pool.request()
+        .input("usu_nome", db.sql.VarChar(100), usu_nome)
+        .input("usu_email", db.sql.VarChar(100), usu_email)
+        .input("usu_senha", db.sql.VarChar(255), hashedPassword)  // Usando a senha criptografada
+        .query(insertSql);
+  
+      // Retornando a resposta de sucesso
+      return response.status(201).json({
         sucesso: true,
-        mensagem:
-          "Cadastro de usuário, endereço e telefone efetuado com sucesso.",
-        dados: { usu_id, end_id, tel_id },
+        mensagem: "Usuário cadastrado com sucesso.",
+        dados: {
+          usu_nome,
+          usu_email,
+        },
       });
     } catch (error) {
-      console.error("Erro ao cadastrar usuário, endereço e telefone:", error);
+      // Tratamento de erros
+      console.error("Erro ao cadastrar usuário:", error);
       return response.status(500).json({
         sucesso: false,
-        mensagem: "Erro na requisição.",
+        mensagem: "Erro interno no servidor.",
         dados: error.message,
       });
     }
   },
 
-  async editarUsuarios(request, response) {
+  async loginUsuario(request, response) {
+    const { usu_email, usu_senha } = request.body;
+
     try {
-      const { usu_perfil_foto, usu_nome, usu_sexo, usu_email, usu_cpf } =
-        request.body;
-      const { usu_id } = request.params;
+        const pool = await db.connect(); // Usando sua conexão já configurada
 
-      if (!usu_email || !usu_sexo) {
-        return response.status(400).json({
-          sucesso: false,
-          mensagem:
-            "Campos obrigatórios (email, sexo, senha) não podem estar vazios.",
+        const sqlQuery = `
+            SELECT usu_id, usu_nome, usu_email, usu_senha 
+            FROM usuarios 
+            WHERE usu_email = @usu_email
+        `;
+
+        const result = await pool.request()
+            .input("usu_email", sql.VarChar, usu_email)
+            .query(sqlQuery);
+
+        if (result.recordset.length === 0) {
+            return response.status(401).json({
+                sucesso: false,
+                mensagem: "Email ou senha incorretos."
+            });
+        }
+
+        const usuarioEncontrado = result.recordset[0];
+
+        const senhaValida = await bcrypt.compare(usu_senha, usuarioEncontrado.usu_senha);
+
+        if (!senhaValida) {
+            return response.status(401).json({
+                sucesso: false,
+                mensagem: "Email ou senha incorretos."
+            });
+        }
+
+        return response.status(200).json({
+            sucesso: true,
+            mensagem: "Login efetuado com sucesso.",
+            dados: {
+                usu_id: usuarioEncontrado.usu_id,
+                usu_nome: usuarioEncontrado.usu_nome,
+                usu_email: usuarioEncontrado.usu_email
+            }
         });
-      }
 
-      const sql = `UPDATE usuarios SET
-                    usu_perfil_foto = ?,
-                    usu_nome = ?, 
-                    usu_sexo = ?, 
-                    usu_email = ?,            
-                    usu_cpf = ?
-                  WHERE usu_id = ?`;
-
-      const values = [
-        usu_perfil_foto || null, // Idem para a foto
-        usu_nome,
-        usu_sexo,
-        usu_email,
-
-        usu_cpf || null, // Se não enviar o CPF, mantém como null
-        usu_id,
-      ];
-
-      const atualizaDados = await db.query(sql, values);
-
-      return response.status(200).json({
-        sucesso: true,
-        mensagem: `Usuário ${usu_id} atualizado com sucesso!`,
-        dados: atualizaDados[0].affectedRows,
-      });
     } catch (error) {
-      console.error("Erro na requisição:", error);
-      return response.status(500).json({
-        sucesso: false,
-        mensagem: "Erro na requisição.",
-        dados: error.message,
-      });
+        console.error("Erro na requisição:", error);
+        return response.status(500).json({
+            sucesso: false,
+            mensagem: "Erro na requisição.",
+            erro: error.message
+        });
     }
-  },
-
+},
   
   async ocultarUsuario(request, response) {
     try {
@@ -300,94 +223,7 @@ module.exports = {
     }
   },
 
-  async loginUsuario(request, response) {
-    const { usu_email, usu_senha } = request.body;
-
-    
-
-    try {
-      // Instruções SQL para verificar se o usuário existe e as credenciais estão corretas
-      const sql = `
-            SELECT 
-                usu_id, usu_nome, usu_email, usu_senha, usu_perfil_foto, tus_cod, usu_senha_provisoria
-            FROM 
-                usuarios
-            WHERE 
-                usu_email = $1  AND usu_ativo = 1
-        `;
-
-      // Executa a query com os parâmetros fornecidos
-      const usuario = await db.query(sql, [usu_email]);
-
-     
-
-      // Verifica se um usuário foi encontrado
-      if (usuario.rows.length > 0) {  
-        const usuarioEncontrado = usuario.rows[0];
-
-       
-
-        const senhaProvisoria = usuarioEncontrado.usu_senha_provisoria === 1;
-
-        const senhaProvisoriaCorreta =
-          usuarioEncontrado.usu_senha === usu_senha;
-
-        if (senhaProvisoria && senhaProvisoriaCorreta) {
-          return response.status(200).json({
-            sucesso: true,
-            mensagem: "Login efetuado com sucesso.",
-            dados: {
-              usu_id: usuarioEncontrado.usu_id,
-              usu_nome: usuarioEncontrado.usu_nome,
-              usu_email: usuarioEncontrado.usu_email,
-              usu_perfil_foto: usuarioEncontrado.usu_perfil_foto,
-              tus_cod: usuarioEncontrado.tus_cod,
-              senhaProvisoria: senhaProvisoria,
-            },
-          });
-        }
-
-        const senhaValida = await bcrypt.compare(
-          usu_senha,
-          usuarioEncontrado.usu_senha
-        );
-
-       
-
-        if (!senhaValida) {
-          return response.status(401).json({
-            sucesso: false,
-            mensagem: "Email ou senha inválidos",  
-          });
-        }
-
-        return response.status(200).json({
-          sucesso: true,
-          mensagem: "Login efetuado com sucesso.",
-          dados: {
-            usu_id: usuarioEncontrado.usu_id,
-            usu_nome: usuarioEncontrado.usu_nome,
-            usu_email: usuarioEncontrado.usu_email,
-            usu_perfil_foto: usuarioEncontrado.usu_perfil_foto,
-            tus_cod: usuarioEncontrado.tus_cod,
-            senhaProvisoria: senhaProvisoria,
-          },
-        });
-      } else {
-        return response.status(401).json({
-          sucesso: false,
-          mensagem: "Email ou senha incorretos.",
-        });
-      }
-    } catch (error) {
-      console.log('Erro na requisição:', error);  // Log do erro
-      return response.status(500).json({
-        sucesso: false,
-        mensagem: "Erro na requisição.",
-        dados: error.message,
-      });
-    }
-},
+  
 
 
   async alterarSenha(request, response) {
