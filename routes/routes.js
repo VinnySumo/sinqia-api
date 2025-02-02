@@ -5,36 +5,35 @@ const router = express.Router();
 const UsuariosController = require("../controllers/usuarios");
 const ComentariosController = require("../controllers/comentarios");
 const PontoTuristicoController = require("../controllers/pontoturistico");
+const EstadosController = require("../controllers/estados");
 
 
 
 //Usuarios
-
 router.post("/loginUsuario", UsuariosController.loginUsuario); //login
-router.patch("/usuarios/alterar_senha",UsuariosController.alterarSenha);
-router.post("/recuperar_senha", UsuariosController.recuperarSenha);
-router.get("/usuarios", UsuariosController.listarUsuarios); //listar usuarios geral
-router.post("/usuarioscadastro", UsuariosController.cadastrarUsuarios); //body
-router.patch("/ocultarUsuario/:usu_id", UsuariosController.ocultarUsuario);
-router.patch("/ativarUsuario/:usu_id", UsuariosController.AtivarUsuario);
+router.get("/usuarios", UsuariosController.listarUsuarioUnico); //listar usuarios 
+router.get("/usuarios/:usu_id", UsuariosController.listarUsuarios); //listar unico usuario
+router.post("/usuarioscadastro", UsuariosController.cadastrarUsuarios); // cadastrar usuario
 
+//Estados
+router.get("/estados", EstadosController.listarEstados); //listar 
+// router.post("/estadocadastro", EstadosController.cadastrarUsuarios); // cadastrar 
+// router.patch("/estado/:es_id", EstadosController.loginUsuario); // atualizar 
+// router.delete("/estado/:es_id", EstadosController.loginUsuario); // apagar
 
-//Comentarios
-router.get("/comentario", ComentariosController.listarComentarios);
-router.post("/comentario", ComentariosController.cadastrarTipoEndereco); //body
-router.patch("/comentario/:ten_cod", ComentariosController.editarTipoEndereco); // params (URL) e body
-router.delete("/comentario/:ten_cod", ComentariosController.apagarTipoEndereco); // params (URL)
+//Comentarios 
+router.get("/comentario", ComentariosController.listarComentarios); //listar 
+router.post("/comentario", ComentariosController.cadastrarTipoEndereco); //cadastrar
+router.patch("/comentario/:ten_cod", ComentariosController.editarTipoEndereco); // atualizar
+router.delete("/comentario/:ten_cod", ComentariosController.apagarTipoEndereco); // apagar
 
 
 //Pontos Turisticos
-router.get( "/pturistico",PontoTuristicoController.listarPontoTuristicos
-);
-router.post("/pturistico",PontoTuristicoController.cadastrarTipoPagamentoCompra
-); 
-router.patch("/pturistico/:tpa_cod",PontoTuristicoController.editarTipoPagamentoCompra
-); 
-router.delete("/pturistico/:tpa_cod",PontoTuristicoController.apagarTipoPagamentoCompra
-); 
+router.get("/pturistico",PontoTuristicoController.listarPontoTuristicos); //listar 
+router.get("/pturistico/:pont_id",PontoTuristicoController.listarPontoUnico); //listar unico
+router.post("/pturistico/cadastro",PontoTuristicoController.cadastrarPontoTuristico);  //cadastrar
+router.patch("/pturistico/:pont_id",PontoTuristicoController.editarPontoTuristico); // atualizar
+router.delete("/pturistico/:pont_id",PontoTuristicoController.apagarPontoTuristico); // apagar
 
 
 module.exports = router;
