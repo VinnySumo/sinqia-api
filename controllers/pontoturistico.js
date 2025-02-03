@@ -95,11 +95,35 @@ module.exports = {
         try {
             const { pont_nome, pont_descricao, pont_localizacao, pont_cidade, pont_estado } = request.body;
     
-            // Validação dos campos
-            if (!pont_nome || !pont_descricao || !pont_localizacao || !pont_cidade || !pont_estado) {
+            // Validação detalhada dos campos
+            if (!pont_nome) {
                 return response.status(400).json({
                     sucesso: false,
-                    mensagem: "Por favor, preencha todos os campos obrigatórios."
+                    mensagem: "Nome do ponto turístico é obrigatório."
+                });
+            }
+            if (!pont_descricao) {
+                return response.status(400).json({
+                    sucesso: false,
+                    mensagem: "Descrição do ponto turístico é obrigatória."
+                });
+            }
+            if (!pont_localizacao) {
+                return response.status(400).json({
+                    sucesso: false,
+                    mensagem: "Localização do ponto turístico é obrigatória."
+                });
+            }
+            if (!pont_cidade) {
+                return response.status(400).json({
+                    sucesso: false,
+                    mensagem: "Cidade do ponto turístico é obrigatória."
+                });
+            }
+            if (!pont_estado) {
+                return response.status(400).json({
+                    sucesso: false,
+                    mensagem: "Estado do ponto turístico é obrigatório."
                 });
             }
     
@@ -109,7 +133,7 @@ module.exports = {
             // Conecta ao banco
             const pool = await db.connect();
     
-            // Insere o ponto turístico
+            // Insere o ponto turístico no banco
             await pool.request()
                 .input("pont_nome", pont_nome)
                 .input("pont_descricao", pont_descricao)
@@ -122,6 +146,7 @@ module.exports = {
                     VALUES (@pont_nome, @pont_descricao, @pont_localizacao, @pont_cidade, @pont_estado, @pont_data_inclusao)`
                 );
     
+            // Retorna resposta de sucesso
             return response.status(201).json({
                 sucesso: true,
                 mensagem: "Ponto turístico cadastrado com sucesso."
