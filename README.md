@@ -40,8 +40,10 @@ Esta API fornece endpoints para gerenciar pontos turísticos. Ela permite a cria
 
 ## Como Usar
 
-1. Acesse a landing page para explorar o site.
-3. Navegue até a tabela de pontos turísticos para visualizar, editar ou excluir dados.
+1. Acesse a pagina chamada backup_banco e baixe o banco de dados.
+2. Depois de ter feito a criacao do banco de dados no sqlserver, acesse a pasta chamada database no backend.
+3. Abra o arquivo chamado connection e faça as alteraçoes de conexao criada por você.
+4. Cajo tenha feito tudo corretamente, e so iniciar no terminal com 'npm run dev'.
 
 ## Contribuição
 
