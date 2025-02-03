@@ -117,10 +117,10 @@ module.exports = {
                 .input("pont_cidade", pont_cidade)
                 .input("pont_estado", pont_estado)
                 .input("pont_data_inclusao", pont_data_inclusao)
-                .query(`
-                    INSERT INTO pontosturisticos (pont_nome, pont_descricao, pont_localizacao, pont_cidade, pont_estado, pont_data_inclusao)
-                    VALUES (@pont_nome, @pont_descricao, @pont_localizacao, @pont_cidade, @pont_estado, @pont_data_inclusao)
-                `);
+                .query(
+                    `INSERT INTO pontosturisticos (pont_nome, pont_descricao, pont_localizacao, pont_cidade, pont_estado, pont_data_inclusao)
+                    VALUES (@pont_nome, @pont_descricao, @pont_localizacao, @pont_cidade, @pont_estado, @pont_data_inclusao)`
+                );
     
             return response.status(201).json({
                 sucesso: true,
