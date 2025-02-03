@@ -29,9 +29,7 @@ router.get("/estados", EstadosController.listarEstados); //listar
 
 //Comentarios 
 router.get("/comentario", ComentariosController.listarComentarios); //listar 
-router.post("/comentario", ComentariosController.cadastrarTipoEndereco); //cadastrar
-router.patch("/comentario/:ten_cod", ComentariosController.editarTipoEndereco); // atualizar
-router.delete("/comentario/:ten_cod", ComentariosController.apagarTipoEndereco); // apagar
+
 
 
 //Pontos Turisticos
