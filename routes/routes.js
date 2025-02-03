@@ -1,6 +1,12 @@
 const express = require("express");
 const router = express.Router();
 
+const multer = require('multer');
+
+// Configuração do Multer para armazenar a imagem temporariamente
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 // referência a controllers que serão utilizados nas rotas
 const UsuariosController = require("../controllers/usuarios");
 const ComentariosController = require("../controllers/comentarios");

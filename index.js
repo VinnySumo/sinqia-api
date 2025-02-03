@@ -1,16 +1,15 @@
-const express = require('express'); 
 const cors = require('cors'); 
+const express = require("express");
+const fileUpload = require("express-fileupload");
 const router = require('./routes/routes');
 
-
 const app = express(); 
+
 app.use(cors()); 
 app.use(express.json()); 
+app.use(fileUpload({ useTempFiles: true, tempFileDir: "/tmp/" }));
 app.use(router);
 
-
-
-// const porta = process.env.PORT || 3333;
 const porta = 3333;
 
 app.listen(porta, () => {
